@@ -15,7 +15,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://aura-parfumerie.onrender.com
+        value: https://aura-parfumerie-epgf.onrender.com
       - key: PORT
         value: 10000
 
