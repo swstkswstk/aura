@@ -214,9 +214,26 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
         image: product.image,
       });
 
-      // Update stock
-      variant.stock -= item.quantity;
-      await product.save();
+      // Update stock atomically so checkout doesn't depend on full product re-validation.
+      const stockUpdateResult = await Product.updateOne(
+        {
+          _id: product._id,
+          'variants._id': variant._id,
+          'variants.stock': { $gte: item.quantity },
+        },
+        {
+          $inc: {
+            'variants.$.stock': -item.quantity,
+          },
+        },
+      );
+
+      if (stockUpdateResult.modifiedCount !== 1) {
+        res.status(400).json({
+          error: `Unable to reserve stock for ${product.name} - ${variant.name}. Please try again.`,
+        });
+        return;
+      }
     }
 
     // Create order
@@ -250,7 +267,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
     });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create order' });
   }
 });
 
