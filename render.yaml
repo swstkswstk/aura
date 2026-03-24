@@ -1,5 +1,4 @@
 services:
-  # Backend API Service
   - type: web
     name: aura-parfumerie-api
     runtime: node
@@ -12,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        sync: false  # Set this manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
@@ -20,11 +19,9 @@ services:
       - key: PORT
         value: 10000
 
-  # Frontend Static Site
   - type: web
     name: aura-parfumerie
     runtime: static
-    region: oregon
     plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
@@ -40,4 +37,4 @@ services:
       - key: VITE_API_URL
         value: https://aura-parfumerie-api.onrender.com
       - key: VITE_GEMINI_API_KEY
-        sync: false  # Set this manually in Render dashboard
+        sync: false
