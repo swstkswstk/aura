@@ -22,7 +22,6 @@ services:
   - type: web
     name: aura-parfumerie
     runtime: static
-    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     headers:
