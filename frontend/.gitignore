@@ -1,23 +1,18 @@
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-dist-ssr/
-
-# Environment files
-.env
-*.local
-
 # Logs
-logs/
+logs
 *.log
 npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea/
+.idea
 .DS_Store
 *.suo
 *.ntvs*

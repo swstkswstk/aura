@@ -26,6 +26,7 @@ Built with **React**, **Tailwind CSS**, **Framer Motion**, and powered by **Goog
     *   *AI Content Generation*: Generate subject lines and email body copy based on a topic and target segment (e.g., "Write a teaser for VIPs about the new Jasmine scent").
 *   **Inventory Management**: Add and edit products.
     *   *AI Descriptions*: Auto-generate poetic, luxury product descriptions based on a list of scent notes.
+    *   *Bulk Import*: Admins can import products via a JSON file using `POST /api/products/bulk` (protected). A `frontend/data/sample-products.json` is available as an example.
 *   **Order Management**: Track and update order statuses (Pending -> Delivered).
 
 ---

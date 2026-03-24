@@ -1,0 +1,34 @@
+[
+  {
+    "externalId": "MS-001",
+    "name": "Midnight Saffron",
+    "category": "Fine Fragrance",
+    "image": "https://images.example.com/products/ms-50ml.jpg",
+    "variants": [
+      {
+        "sku": "MS-EDP-50",
+        "name": "50ml Eau de Parfum",
+        "price": 1850,
+        "stock": 48
+      },
+      {
+        "sku": "MS-ROLL-10",
+        "name": "10ml Roll-on",
+        "price": 450,
+        "stock": 120
+      }
+    ]
+  },
+  {
+    "name": "Dawn Citrus",
+    "category": "Fine Fragrance",
+    "variants": [
+      {
+        "sku": "DC-EDP-50",
+        "name": "50ml Eau de Parfum",
+        "price": 1600,
+        "stock": 60
+      }
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Summer Fragrance Bundle",
+    "description": "Get our two most popular summer fragrances at a 20% discount.",
+    "type": "bundle",
+    "products": [
+      "60d5f2f5c7b8f3b3f8f2f0a1",
+      "60d5f2f5c7b8f3b3f8f2f0a2"
+    ],
+    "discountPercentage": 20,
+    "isActive": true
+  },
+  {
+    "title": "15% Off All Home Collection",
+    "description": "Enjoy a 15% discount on our entire home collection.",
+    "type": "discount",
+    "discountPercentage": 15,
+    "isActive": true
+  }
+]
