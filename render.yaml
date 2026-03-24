@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd backend && npm install && npm run build
+    buildCommand: cd backend && npm ci --include=dev && npm run build
     startCommand: cd backend && npm start
     healthCheckPath: /api/health
     envVars:
@@ -22,7 +22,7 @@ services:
   - type: web
     name: aura-parfumerie
     runtime: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm ci --include=dev && npm run build
     staticPublishPath: frontend/dist
     headers:
       - path: /*
