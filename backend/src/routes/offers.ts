@@ -1,9 +1,7 @@
 import { Router, Request, Response } from 'express';
-import Offer from '../models/Offer';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import Offer from '../models/Offer.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import multer from 'multer';
-import fs from 'fs/promises';
-import path from 'path';
 
 const router = Router();
 
