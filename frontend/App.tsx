@@ -77,11 +77,14 @@ const reconcileCartItems = (items: CartItem[], catalog: Product[]) => {
       continue;
     }
 
-    const matchedVariant = matchedProduct.variants.find((variant) => (
+    const directVariant = matchedProduct.variants.find((variant) => (
       variant.id === item.variantId ||
-      (item.sku && variant.sku === item.sku) ||
-      variant.name === item.variantName
-    )) ?? (matchedProduct.variants.length === 1 ? matchedProduct.variants[0] : undefined);
+      (item.sku && variant.sku === item.sku)
+    ));
+    const sameNameVariants = matchedProduct.variants.filter((variant) => variant.name === item.variantName);
+    const matchedVariant = directVariant
+      ?? (sameNameVariants.length === 1 ? sameNameVariants[0] : undefined)
+      ?? (matchedProduct.variants.length === 1 ? matchedProduct.variants[0] : undefined);
 
     if (!matchedVariant) {
       unavailableItems.push(item);
