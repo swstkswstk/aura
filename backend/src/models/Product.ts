@@ -1,6 +1,24 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type ProductType = 'EDP' | 'Extrait' | 'Cologne' | 'Roll-on' | 'Candle' | 'Incense' | 'Diffuser' | 'Car Perfume';
+export type ProductType =
+  | 'EDP'
+  | 'Extrait'
+  | 'Cologne'
+  | 'Roll-on'
+  | 'Candle'
+  | 'Incense'
+  | 'Diffuser'
+  | 'Backflow Stand'
+  | 'Backflow'
+  | 'Car Perfume'
+  | 'Dhoop Cones'
+  | 'Dhoop Sticks'
+  | 'Floor Cleaner'
+  | 'Air Freshner'
+  | 'Air Freshener'
+  | 'Pain Oil'
+  | 'Essential Oil'
+  | 'Diffuser Oil';
 export type ProductCategory = 'Fine Fragrance' | 'Home Collection' | 'Accessories';
 export type StoredProductCategory = ProductCategory | 'Fragrances';
 
@@ -34,7 +52,7 @@ const productVariantSchema = new Schema<IProductVariant>(
     },
     type: {
       type: String,
-      enum: ['EDP', 'Extrait', 'Cologne', 'Roll-on', 'Candle', 'Incense', 'Diffuser', 'Backflow Stand', 'Backflow', 'Car Perfume', 'Dhoop Cones', 'Dhoop Sticks', 'Floor Cleaner', 'Air Freshner', 'Pain Oil', 'Essential Oil', 'Diffuser Oil'],
+      enum: ['EDP', 'Extrait', 'Cologne', 'Roll-on', 'Candle', 'Incense', 'Diffuser', 'Backflow Stand', 'Backflow', 'Car Perfume', 'Dhoop Cones', 'Dhoop Sticks', 'Floor Cleaner', 'Air Freshner', 'Air Freshener', 'Pain Oil', 'Essential Oil', 'Diffuser Oil'],
       required: true,
     },
     price: {
