@@ -43,17 +43,17 @@ export type ProductType =
   | 'Candle'
   | 'Incense'
   | 'Diffuser'
-  | 'Backflow Stand'
-  | 'Backflow'
+  | 'Stand'
+  | 'Backflow Dhoop Cone'
   | 'Car Perfume'
-  | 'Dhoop Cones'
-  | 'Dhoop Sticks'
+  | 'Dhoop Cone'
+  | 'Dhoop Stick'
   | 'Floor Cleaner'
-  | 'Air Freshner'
   | 'Air Freshener'
   | 'Pain Oil'
   | 'Essential Oil'
-  | 'Diffuser Oil';
+  | 'Diffuser Oil'
+  | 'Incense Stick';
 
 export interface ProductVariant {
   id: string;
