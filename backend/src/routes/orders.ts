@@ -8,6 +8,91 @@ import { ensureProductVariantIds } from '../utils/productUtils.js';
 
 const router = Router();
 
+const reserveVariantStock = async (
+  product: InstanceType<typeof Product>,
+  variant: NonNullable<InstanceType<typeof Product>['variants'][number]>,
+  quantity: number,
+): Promise<boolean> => {
+  const reservationAttempts: Array<Promise<{ modifiedCount?: number }>> = [];
+
+  if (variant._id) {
+    reservationAttempts.push(
+      Product.updateOne(
+        {
+          _id: product._id,
+          'variants._id': variant._id,
+          'variants.stock': { $gte: quantity },
+        },
+        {
+          $inc: {
+            'variants.$.stock': -quantity,
+          },
+        },
+      ),
+    );
+  }
+
+  if (variant.sku) {
+    reservationAttempts.push(
+      Product.updateOne(
+        {
+          _id: product._id,
+          'variants.sku': variant.sku,
+          'variants.stock': { $gte: quantity },
+        },
+        {
+          $inc: {
+            'variants.$.stock': -quantity,
+          },
+        },
+      ),
+    );
+  }
+
+  const sameNameVariants = product.variants.filter((currentVariant) => currentVariant.name === variant.name);
+  if (variant.name && sameNameVariants.length === 1) {
+    reservationAttempts.push(
+      Product.updateOne(
+        {
+          _id: product._id,
+          'variants.name': variant.name,
+          'variants.stock': { $gte: quantity },
+        },
+        {
+          $inc: {
+            'variants.$.stock': -quantity,
+          },
+        },
+      ),
+    );
+  }
+
+  if (product.variants.length === 1) {
+    reservationAttempts.push(
+      Product.updateOne(
+        {
+          _id: product._id,
+          'variants.0.stock': { $gte: quantity },
+        },
+        {
+          $inc: {
+            'variants.0.stock': -quantity,
+          },
+        },
+      ),
+    );
+  }
+
+  for (const attempt of reservationAttempts) {
+    const result = await attempt;
+    if (result.modifiedCount === 1) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 // GET /api/orders/admin/all - Get all orders (Admin only)
 router.get('/admin/all', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -215,20 +300,9 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
       });
 
       // Update stock atomically so checkout doesn't depend on full product re-validation.
-      const stockUpdateResult = await Product.updateOne(
-        {
-          _id: product._id,
-          'variants._id': variant._id,
-          'variants.stock': { $gte: item.quantity },
-        },
-        {
-          $inc: {
-            'variants.$.stock': -item.quantity,
-          },
-        },
-      );
+      const stockReserved = await reserveVariantStock(product, variant, item.quantity);
 
-      if (stockUpdateResult.modifiedCount !== 1) {
+      if (!stockReserved) {
         res.status(400).json({
           error: `Unable to reserve stock for ${product.name} - ${variant.name}. Please try again.`,
         });
