@@ -8,17 +8,17 @@ export type ProductType =
   | 'Candle'
   | 'Incense'
   | 'Diffuser'
-  | 'Backflow Stand'
-  | 'Backflow'
+  | 'Stand'
+  | 'Backflow Dhoop Cone'
   | 'Car Perfume'
-  | 'Dhoop Cones'
-  | 'Dhoop Sticks'
+  | 'Dhoop Cone'
+  | 'Dhoop Stick'
   | 'Floor Cleaner'
-  | 'Air Freshner'
   | 'Air Freshener'
   | 'Pain Oil'
   | 'Essential Oil'
-  | 'Diffuser Oil';
+  | 'Diffuser Oil'
+  | 'Incense Stick';
 export type ProductCategory = 'Fine Fragrance' | 'Home Collection' | 'Accessories';
 export type StoredProductCategory = ProductCategory | 'Fragrances';
 
@@ -52,7 +52,7 @@ const productVariantSchema = new Schema<IProductVariant>(
     },
     type: {
       type: String,
-      enum: ['EDP', 'Extrait', 'Cologne', 'Roll-on', 'Candle', 'Incense', 'Diffuser', 'Backflow Stand', 'Backflow', 'Car Perfume', 'Dhoop Cones', 'Dhoop Sticks', 'Floor Cleaner', 'Air Freshner', 'Air Freshener', 'Pain Oil', 'Essential Oil', 'Diffuser Oil'],
+      enum: ['EDP', 'Extrait', 'Cologne', 'Roll-on', 'Candle', 'Incense', 'Diffuser', 'Stand', 'Backflow Dhoop Cone', 'Car Perfume', 'Dhoop Cone', 'Dhoop Stick', 'Floor Cleaner', 'Air Freshener', 'Pain Oil', 'Essential Oil', 'Diffuser Oil', 'Incense Stick'],
       required: true,
     },
     price: {
