@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import mongoose from 'mongoose';
 import Product, { IProduct, IProductVariant, ProductCategory, ProductType } from '../models/Product.js';
 
@@ -18,6 +19,44 @@ type VariantWithOptionalId = IProductVariant & {
   _id?: mongoose.Types.ObjectId;
   toObject?: () => Partial<IProductVariant> & { _id?: mongoose.Types.ObjectId };
 };
+
+const buildVariantIdentitySeed = (
+  product: Pick<IProduct, '_id'>,
+  variant: Partial<IProductVariant>,
+  index: number,
+) => {
+  const stableParts = [
+    product._id.toString(),
+    typeof variant.sku === 'string' && variant.sku.trim() ? variant.sku.trim() : '',
+    typeof variant.type === 'string' ? variant.type : '',
+    typeof variant.name === 'string' ? variant.name : '',
+    Number.isFinite(variant.price) ? String(variant.price) : '',
+    String(index),
+  ];
+
+  return stableParts.join('::');
+};
+
+export function getStableVariantObjectId(
+  product: Pick<IProduct, '_id'>,
+  variant: Partial<IProductVariant> & { _id?: mongoose.Types.ObjectId },
+  index: number,
+): mongoose.Types.ObjectId {
+  const digest = createHash('sha1')
+    .update(buildVariantIdentitySeed(product, variant, index))
+    .digest('hex')
+    .slice(0, 24);
+
+  return new mongoose.Types.ObjectId(digest);
+}
+
+export function getStableVariantId(
+  product: Pick<IProduct, '_id'>,
+  variant: Partial<IProductVariant> & { _id?: mongoose.Types.ObjectId },
+  index: number,
+): string {
+  return getStableVariantObjectId(product, variant, index).toString();
+}
 
 export function normalizeProductCategory(category: unknown): ProductCategory {
   if (category === 'Home Collection' || category === 'Accessories') {
@@ -90,10 +129,11 @@ function toPlainVariant(variant: VariantWithOptionalId): Partial<IProductVariant
 export async function ensureProductVariantIds(product: IProduct): Promise<void> {
   let changed = false;
 
-  const normalizedVariants = product.variants.map((variant) => {
+  const normalizedVariants = product.variants.map((variant, index) => {
     const plainVariant = toPlainVariant(variant as VariantWithOptionalId);
+    const stableId = getStableVariantObjectId(product, plainVariant, index);
 
-    if (plainVariant._id) {
+    if (plainVariant._id?.toString() === stableId.toString()) {
       return plainVariant;
     }
 
@@ -101,7 +141,7 @@ export async function ensureProductVariantIds(product: IProduct): Promise<void> 
 
     return {
       ...plainVariant,
-      _id: new mongoose.Types.ObjectId(),
+      _id: stableId,
     };
   });
 
@@ -111,7 +151,7 @@ export async function ensureProductVariantIds(product: IProduct): Promise<void> 
 
   product.set('variants', normalizedVariants);
 
-  await Product.updateOne(
+  await Product.collection.updateOne(
     { _id: product._id },
     { $set: { variants: normalizedVariants } },
   );
@@ -207,13 +247,9 @@ export function serializeProduct(product: IProduct) {
     category: normalizeProductCategory(product.category),
     notes: product.notes,
     image: product.image,
-    variants: product.variants.map((variant) => {
-      if (!variant._id) {
-        throw new Error(`Product ${product._id.toString()} has a variant without an _id`);
-      }
-
+    variants: product.variants.map((variant, index) => {
       return {
-        id: variant._id.toString(),
+        id: getStableVariantId(product, variant, index),
         name: variant.name,
         type: variant.type,
         price: variant.price,
