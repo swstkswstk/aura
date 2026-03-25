@@ -4,23 +4,25 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
-import { ensureProductVariantIds } from '../utils/productUtils.js';
+import { ensureProductVariantIds, getStableVariantId, getStableVariantObjectId } from '../utils/productUtils.js';
 
 const router = Router();
 
 const reserveVariantStock = async (
   product: InstanceType<typeof Product>,
   variant: NonNullable<InstanceType<typeof Product>['variants'][number]>,
+  variantIndex: number,
   quantity: number,
 ): Promise<boolean> => {
   const reservationAttempts: Array<Promise<{ modifiedCount?: number }>> = [];
+  const stableVariantObjectId = getStableVariantObjectId(product, variant, variantIndex);
 
-  if (variant._id) {
+  if (variant._id || stableVariantObjectId) {
     reservationAttempts.push(
       Product.updateOne(
         {
           _id: product._id,
-          'variants._id': variant._id,
+          'variants._id': stableVariantObjectId,
           'variants.stock': { $gte: quantity },
         },
         {
@@ -91,6 +93,41 @@ const reserveVariantStock = async (
   }
 
   return false;
+};
+
+const resolveVariantIndex = (
+  product: InstanceType<typeof Product>,
+  item: { variantId?: string; sku?: string; variantName?: string },
+): number => {
+  if (typeof item.variantId === 'string' && item.variantId) {
+    const stableIdMatchIndex = product.variants.findIndex((variant, index) => (
+      getStableVariantId(product, variant, index) === item.variantId ||
+      variant._id?.toString() === item.variantId
+    ));
+
+    if (stableIdMatchIndex >= 0) {
+      return stableIdMatchIndex;
+    }
+  }
+
+  if (typeof item.sku === 'string' && item.sku) {
+    const skuMatchIndex = product.variants.findIndex((variant) => variant.sku === item.sku);
+    if (skuMatchIndex >= 0) {
+      return skuMatchIndex;
+    }
+  }
+
+  if (typeof item.variantName === 'string' && item.variantName) {
+    const matchingVariants = product.variants
+      .map((variant, index) => ({ variant, index }))
+      .filter(({ variant }) => variant.name === item.variantName);
+
+    if (matchingVariants.length === 1) {
+      return matchingVariants[0].index;
+    }
+  }
+
+  return product.variants.length === 1 ? 0 : -1;
 };
 
 // GET /api/orders/admin/all - Get all orders (Admin only)
@@ -251,30 +288,11 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
 
       await ensureProductVariantIds(product);
 
-      const variant = product.variants.find(
-        (v) => v._id?.toString() === item.variantId
-      ) ?? (
-        typeof item.sku === 'string' && item.sku
-          ? product.variants.find((v) => v.sku === item.sku)
-          : undefined
-      ) ?? (
-        typeof item.variantName === 'string' && item.variantName
-          ? (() => {
-              const matchingVariants = product.variants.filter((v) => v.name === item.variantName);
-              return matchingVariants.length === 1 ? matchingVariants[0] : undefined;
-            })()
-          : undefined
-      ) ?? (
-        product.variants.length === 1 ? product.variants[0] : undefined
-      );
+      const variantIndex = resolveVariantIndex(product, item);
+      const variant = variantIndex >= 0 ? product.variants[variantIndex] : undefined;
 
       if (!variant) {
         res.status(400).json({ error: `Variant ${item.variantId} not found` });
-        return;
-      }
-
-      if (!variant._id) {
-        res.status(500).json({ error: `Variant ${item.variantId} is missing its database identifier` });
         return;
       }
 
@@ -291,7 +309,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
 
       orderItems.push({
         productId: new mongoose.Types.ObjectId(item.productId),
-        variantId: variant._id,
+        variantId: getStableVariantObjectId(product, variant, variantIndex),
         productName: product.name,
         variantName: variant.name,
         price: variant.price,
@@ -300,7 +318,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
       });
 
       // Update stock atomically so checkout doesn't depend on full product re-validation.
-      const stockReserved = await reserveVariantStock(product, variant, item.quantity);
+      const stockReserved = await reserveVariantStock(product, variant, variantIndex, item.quantity);
 
       if (!stockReserved) {
         res.status(400).json({
