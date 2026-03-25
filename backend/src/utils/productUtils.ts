@@ -28,11 +28,22 @@ export function normalizeProductCategory(category: unknown): ProductCategory {
 }
 
 export function normalizeProductType(type: unknown): ProductType {
-  if (typeof type === 'string' && type.trim()) {
-    return type as ProductType;
+  if (typeof type !== 'string' || !type.trim()) {
+    return 'EDP';
   }
 
-  return 'EDP';
+  const normalizedType = type.trim();
+
+  const legacyTypeMap: Record<string, ProductType> = {
+    'Air Freshner': 'Air Freshener',
+    'Backflow Stand': 'Stand',
+    'Backflow': 'Backflow Dhoop Cone',
+    'Dhoop Cones': 'Dhoop Cone',
+    'Dhoop Sticks': 'Dhoop Stick',
+    'Incense Sticks': 'Incense Stick',
+  };
+
+  return legacyTypeMap[normalizedType] ?? (normalizedType as ProductType);
 }
 
 function normalizeString(value: unknown, fallback = ''): string {
