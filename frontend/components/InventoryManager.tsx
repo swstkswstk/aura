@@ -17,17 +17,17 @@ const VARIANT_TYPES: ProductType[] = [
   'Candle',
   'Incense',
   'Diffuser',
-  'Backflow Stand',
-  'Backflow',
+  'Stand',
+  'Backflow Dhoop Cone',
   'Car Perfume',
-  'Dhoop Cones',
-  'Dhoop Sticks',
+  'Dhoop Cone',
+  'Dhoop Stick',
   'Floor Cleaner',
-  'Air Freshner',
   'Air Freshener',
   'Pain Oil',
   'Essential Oil',
   'Diffuser Oil',
+  'Incense Stick',
 ];
 const randomImage = () => `https://picsum.photos/400/500?random=${Math.floor(Math.random() * 1000)}`;
 const createVariantId = () => `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
