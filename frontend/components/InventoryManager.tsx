@@ -9,7 +9,26 @@ interface InventoryManagerProps {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
 }
 
-const VARIANT_TYPES: ProductType[] = ['EDP', 'Extrait', 'Cologne', 'Roll-on', 'Candle', 'Incense', 'Diffuser', 'Car Perfume'];
+const VARIANT_TYPES: ProductType[] = [
+  'EDP',
+  'Extrait',
+  'Cologne',
+  'Roll-on',
+  'Candle',
+  'Incense',
+  'Diffuser',
+  'Backflow Stand',
+  'Backflow',
+  'Car Perfume',
+  'Dhoop Cones',
+  'Dhoop Sticks',
+  'Floor Cleaner',
+  'Air Freshner',
+  'Air Freshener',
+  'Pain Oil',
+  'Essential Oil',
+  'Diffuser Oil',
+];
 const randomImage = () => `https://picsum.photos/400/500?random=${Math.floor(Math.random() * 1000)}`;
 const createVariantId = () => `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const createEmptyVariant = (): ProductVariant => ({
