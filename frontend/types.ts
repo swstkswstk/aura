@@ -35,7 +35,25 @@ export interface Customer {
   nextAction?: string;
 }
 
-export type ProductType = 'EDP' | 'Extrait' | 'Cologne' | 'Roll-on' | 'Candle' | 'Incense' | 'Diffuser' | 'Car Perfume';
+export type ProductType =
+  | 'EDP'
+  | 'Extrait'
+  | 'Cologne'
+  | 'Roll-on'
+  | 'Candle'
+  | 'Incense'
+  | 'Diffuser'
+  | 'Backflow Stand'
+  | 'Backflow'
+  | 'Car Perfume'
+  | 'Dhoop Cones'
+  | 'Dhoop Sticks'
+  | 'Floor Cleaner'
+  | 'Air Freshner'
+  | 'Air Freshener'
+  | 'Pain Oil'
+  | 'Essential Oil'
+  | 'Diffuser Oil';
 
 export interface ProductVariant {
   id: string;
