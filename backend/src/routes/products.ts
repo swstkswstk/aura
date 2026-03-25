@@ -123,7 +123,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     res.json({ product: serializeProduct(product) });
   } catch (error) {
     console.error('Update product error:', error);
-    res.status(500).json({ error: 'Failed to update product' });
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to update product' });
   }
 });
 
