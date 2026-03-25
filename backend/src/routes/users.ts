@@ -85,7 +85,18 @@ router.put('/profile', authenticateToken, async (req: Request, res: Response): P
     // Update fields if provided
     if (name !== undefined) user.name = name;
     if (typeof email === 'string' && email.trim()) {
-      user.email = email.toLowerCase().trim();
+      const normalizedEmail = email.toLowerCase().trim();
+      const duplicateEmailOwner = await User.findOne({
+        _id: { $ne: userId },
+        email: normalizedEmail,
+      }).select('_id');
+
+      if (duplicateEmailOwner) {
+        res.status(400).json({ error: 'That email is already in use by another account' });
+        return;
+      }
+
+      user.email = normalizedEmail;
     }
     if (phone !== undefined) user.phone = phone;
     if (avatar !== undefined) user.avatar = avatar;
@@ -139,7 +150,17 @@ router.put('/profile', authenticateToken, async (req: Request, res: Response): P
     });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ error: 'Failed to update profile' });
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 11000
+    ) {
+      res.status(400).json({ error: 'That email is already in use by another account' });
+      return;
+    }
+
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to update profile' });
   }
 });
 
