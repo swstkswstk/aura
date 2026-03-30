@@ -431,7 +431,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       <span>{checkoutSnapshot.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                     </div>
                     <div className="flex items-center justify-between font-semibold text-brand-900">
-                      <span>Paid</span>
+                      <span>Total</span>
                       <span>₹{summaryTotal.toFixed(2)}</span>
                     </div>
                   </div>
