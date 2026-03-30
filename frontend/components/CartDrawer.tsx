@@ -18,6 +18,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   isOpen, onClose, items, onRemove, onPlaceOrder, isLoggedIn = true, onLoginRequired, user 
 }) => {
   const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState<{ items: CartItem[]; total: number }>({
+    items: [],
+    total: 0,
+  });
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,6 +51,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   }, [step, user]);
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const summaryItems = step === 'cart' ? items : checkoutSnapshot.items;
+  const summaryTotal = step === 'cart'
+    ? total
+    : confirmedOrder?.total ?? checkoutSnapshot.total;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -110,6 +119,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       });
 
       if (order) {
+        setConfirmedOrder(order);
         setStep('success');
         return;
       }
@@ -127,6 +137,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     // Reset state after transition
     setTimeout(() => {
       setStep('cart');
+      setCheckoutSnapshot({ items: [], total: 0 });
+      setConfirmedOrder(null);
       setErrors({});
       setSubmitError('');
       setIsSubmitting(false);
@@ -370,7 +382,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="bg-brand-50 p-4 rounded-lg">
                     <h4 className="font-serif text-brand-900 mb-3">Order Summary</h4>
                     <div className="space-y-2 text-sm">
-                      {items.map((item, idx) => (
+                      {summaryItems.map((item, idx) => (
                         <div key={idx} className="flex justify-between text-brand-600">
                           <span>{item.quantity}x {item.productName}</span>
                           <span>₹{item.price * item.quantity}</span>
@@ -380,7 +392,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <div className="border-t border-brand-200 mt-3 pt-3 space-y-1">
                       <div className="flex justify-between text-sm text-brand-600">
                         <span>Subtotal</span>
-                        <span>₹{total.toFixed(2)}</span>
+                        <span>₹{summaryTotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-brand-600">
                         <span>Shipping</span>
@@ -388,7 +400,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
                       <div className="flex justify-between font-bold text-brand-900 pt-2 border-t border-brand-200">
                         <span>Total</span>
-                        <span>₹{total.toFixed(2)}</span>
+                        <span>₹{summaryTotal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -413,6 +425,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <p className="text-brand-400 text-sm mb-8 max-w-xs">
                     We'll send a confirmation to <span className="font-medium text-brand-600">{formData.email}</span> and notify you at <span className="font-medium text-brand-600">{formData.phone}</span> when your order ships.
                   </p>
+                  <div className="mb-8 w-full max-w-xs rounded-lg bg-brand-50 p-4 text-left">
+                    <div className="mb-2 flex items-center justify-between text-sm text-brand-600">
+                      <span>Items</span>
+                      <span>{checkoutSnapshot.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                    </div>
+                    <div className="flex items-center justify-between font-semibold text-brand-900">
+                      <span>Paid</span>
+                      <span>₹{summaryTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
                   <button 
                     onClick={handleClose}
                     className="bg-brand-900 text-white px-8 py-3 rounded-lg font-medium hover:bg-brand-800 transition"
@@ -429,7 +451,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="space-y-4">
                     <div className="flex justify-between items-end">
                       <span className="text-sm text-brand-500">Total</span>
-                      <span className="text-2xl font-serif text-brand-900">₹{total.toFixed(2)}</span>
+                      <span className="text-2xl font-serif text-brand-900">₹{summaryTotal.toFixed(2)}</span>
                     </div>
                     {!isLoggedIn ? (
                       <button 
@@ -443,7 +465,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </button>
                     ) : (
                       <button 
-                        onClick={() => setStep('checkout')}
+                        onClick={() => {
+                          setCheckoutSnapshot({
+                            items: items.map((item) => ({ ...item })),
+                            total,
+                          });
+                          setConfirmedOrder(null);
+                          setStep('checkout');
+                        }}
                         className="w-full bg-brand-900 text-white py-4 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-brand-800 transition"
                       >
                         Checkout <ArrowRight size={18} />
