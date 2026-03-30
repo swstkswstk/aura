@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Users, MessageSquare, PieChart, Search, 
   MoreVertical, Mail, Phone, ExternalLink, 
   AlertCircle, CheckCircle, Clock, 
   LayoutDashboard, Megaphone, Package, ShoppingCart,
-  TrendingUp, Activity, User as UserIcon, Tag, Send, ShoppingBag
+  TrendingUp, Activity, User as UserIcon, Tag, Send, ShoppingBag, Download
 } from 'lucide-react';
 import { Customer, Message, Product, Order } from '../types';
 import { analyzeCustomerInteraction } from '../services/geminiService';
+import { usersApi } from '../services/api';
 import { CampaignManager } from './CampaignManager';
 import { InventoryManager } from './InventoryManager';
 import { OrderManager } from './OrderManager';
@@ -22,21 +23,49 @@ interface CrmDashboardProps {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  isCustomersLoading?: boolean;
 }
 
 type Tab = 'dashboard' | 'campaigns' | 'inventory' | 'orders' | 'offers';
 
 export const CrmDashboard: React.FC<CrmDashboardProps> = ({ 
-  customers, setCustomers, products, setProducts, orders, setOrders 
+  customers, setCustomers, products, setProducts, orders, setOrders, isCustomersLoading = false,
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [filter, setFilter] = useState<'All' | 'VIP' | 'Active' | 'Lead' | 'At Risk'>('All');
   const [replyText, setReplyText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const selectedCustomer = selectedCustomerId ? customers.find(c => c.id === selectedCustomerId) || null : null;
-  const filteredCustomers = customers.filter(c => filter === 'All' || c.status === filter);
+  const filteredCustomers = customers.filter((customer) => {
+    const matchesFilter = filter === 'All' || customer.status === filter;
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return matchesFilter;
+    }
+
+    return matchesFilter && [
+      customer.name,
+      customer.email,
+      customer.phone,
+    ].some((value) => value.toLowerCase().includes(normalizedQuery));
+  });
+
+  useEffect(() => {
+    if (!customers.length) {
+      setSelectedCustomerId(null);
+      return;
+    }
+
+    if (!selectedCustomerId || !customers.some((customer) => customer.id === selectedCustomerId)) {
+      setSelectedCustomerId(customers[0].id);
+    }
+  }, [customers, selectedCustomerId]);
 
   const handleAnalyze = async (customer: Customer) => {
     setIsAnalyzing(true);
@@ -83,6 +112,20 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
 
   const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+  };
+
+  const handleExportCustomers = async () => {
+    setIsExporting(true);
+    setExportError('');
+
+    try {
+      const result = await usersApi.downloadAdminUsersCsv();
+      if (!result.success) {
+        setExportError(result.error || 'Failed to export users');
+      }
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Helper to calculate LTV
@@ -135,6 +178,38 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[key] || 'bg-gray-100'}`}>
         {status}
       </span>
+    );
+  };
+
+  const Avatar = ({ customer, size = 'small' }: { customer: Customer; size?: 'small' | 'large' }) => {
+    const avatarSize = size === 'large' ? 'w-16 h-16 text-lg' : 'w-10 h-10 text-sm';
+    const initials = customer.name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('') || 'AU';
+
+    return (
+      <div className={`${avatarSize} rounded-full overflow-hidden border-2 border-white shadow-sm bg-brand-200`}>
+        {customer.avatar ? (
+          <img
+            src={customer.avatar}
+            alt={customer.name}
+            className="w-full h-full object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+              if (fallback) {
+                fallback.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div className={`w-full h-full items-center justify-center text-brand-800 font-semibold ${customer.avatar ? 'hidden' : 'flex'}`}>
+          {initials}
+        </div>
+      </div>
     );
   };
 
@@ -225,15 +300,30 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
               {/* List */}
               <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-brand-100 overflow-hidden flex flex-col h-full">
                 <div className="p-4 border-b border-brand-100">
-                  <h2 className="text-lg font-serif font-medium text-brand-900 mb-3">Customers</h2>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-serif font-medium text-brand-900">Customers</h2>
+                    <button
+                      onClick={handleExportCustomers}
+                      disabled={isExporting}
+                      className="inline-flex items-center gap-2 rounded-lg border border-brand-200 px-3 py-2 text-xs font-medium text-brand-700 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Download size={14} />
+                      {isExporting ? 'Exporting...' : 'Export CSV'}
+                    </button>
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-400 w-4 h-4" />
                     <input 
                       type="text" 
                       placeholder="Search..." 
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
                       className="w-full pl-9 pr-4 py-2 bg-brand-50 border-none rounded-lg text-sm focus:ring-1 focus:ring-brand-300"
                     />
                   </div>
+                  {exportError && (
+                    <p className="mt-2 text-xs text-red-600">{exportError}</p>
+                  )}
                 </div>
                 
                 <div className="flex gap-2 p-2 border-b border-brand-50 overflow-x-auto scrollbar-hide">
@@ -249,26 +339,36 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                 </div>
 
                 <div className="overflow-y-auto flex-1">
-                  {filteredCustomers.map(customer => (
-                    <div 
-                      key={customer.id}
-                      onClick={() => setSelectedCustomerId(customer.id)}
-                      className={`p-4 flex items-center gap-4 hover:bg-brand-50 cursor-pointer border-b border-brand-50 transition
-                        ${selectedCustomerId === customer.id ? 'bg-brand-50 border-l-4 border-l-brand-800' : 'border-l-4 border-l-transparent'}
-                      `}
-                    >
-                      <img src={customer.avatar} alt={customer.name} className="w-10 h-10 rounded-full object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-sm font-semibold text-brand-900 truncate">{customer.name}</h3>
-                          <StatusBadge status={customer.status} />
-                        </div>
-                        <p className="text-xs text-brand-500 truncate mt-1">
-                          Last: {new Date(customer.lastInteraction).toLocaleDateString()}
-                        </p>
-                      </div>
+                  {isCustomersLoading ? (
+                    <div className="flex h-full items-center justify-center p-6 text-sm text-brand-400">
+                      Loading customers...
                     </div>
-                  ))}
+                  ) : filteredCustomers.length === 0 ? (
+                    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-brand-400">
+                      No customers found in the database for this filter.
+                    </div>
+                  ) : (
+                    filteredCustomers.map(customer => (
+                      <div 
+                        key={customer.id}
+                        onClick={() => setSelectedCustomerId(customer.id)}
+                        className={`p-4 flex items-center gap-4 hover:bg-brand-50 cursor-pointer border-b border-brand-50 transition
+                          ${selectedCustomerId === customer.id ? 'bg-brand-50 border-l-4 border-l-brand-800' : 'border-l-4 border-l-transparent'}
+                        `}
+                      >
+                        <Avatar customer={customer} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <h3 className="text-sm font-semibold text-brand-900 truncate">{customer.name}</h3>
+                            <StatusBadge status={customer.status} />
+                          </div>
+                          <p className="text-xs text-brand-500 truncate mt-1">
+                            Last: {new Date(customer.lastInteraction).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -280,13 +380,13 @@ export const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     <div className="p-6 border-b border-brand-100 bg-brand-50/30">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <img src={selectedCustomer.avatar} alt={selectedCustomer.name} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
+                          <Avatar customer={selectedCustomer} size="large" />
                           <div>
                             <h2 className="text-xl font-serif font-medium text-brand-900">{selectedCustomer.name}</h2>
                             <div className="flex gap-2 text-brand-500 mt-1">
-                              <a href={`mailto:${selectedCustomer.email}`} className="flex items-center gap-1 text-xs hover:text-brand-800 transition"><Mail size={12}/> {selectedCustomer.email}</a>
+                              <a href={`mailto:${selectedCustomer.email || 'no-email@aura.local'}`} className="flex items-center gap-1 text-xs hover:text-brand-800 transition"><Mail size={12}/> {selectedCustomer.email || 'No email set'}</a>
                               <span className="text-brand-200">|</span>
-                              <a href={`tel:${selectedCustomer.phone}`} className="flex items-center gap-1 text-xs hover:text-brand-800 transition"><Phone size={12}/> {selectedCustomer.phone}</a>
+                              <a href={`tel:${selectedCustomer.phone || ''}`} className="flex items-center gap-1 text-xs hover:text-brand-800 transition"><Phone size={12}/> {selectedCustomer.phone || 'No phone set'}</a>
                             </div>
                           </div>
                         </div>
