@@ -15,7 +15,9 @@ const formatAddress = (address: { street?: string; city?: string; state?: string
     .filter(Boolean).join(', ') || undefined;
 };
 
-const isPhoneAliasEmail = (email: string): boolean => email.endsWith(`@${PHONE_EMAIL_DOMAIN}`);
+const isPhoneAliasEmail = (email: unknown): boolean => (
+  typeof email === 'string' && email.endsWith(`@${PHONE_EMAIL_DOMAIN}`)
+);
 
 const normalizeSavedCart = (savedCart: unknown) => {
   if (!Array.isArray(savedCart)) {
@@ -72,8 +74,8 @@ const toPublicUser = (user: IUser) => ({
   savedCart: normalizeSavedCart(user.savedCart),
 });
 
-const getDisplayEmail = (email: string): string => (
-  isPhoneAliasEmail(email) ? '' : email
+const getDisplayEmail = (email: unknown): string => (
+  typeof email === 'string' && !isPhoneAliasEmail(email) ? email : ''
 );
 
 const deriveCustomerStatus = (params: {
