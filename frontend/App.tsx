@@ -12,7 +12,6 @@ import { UserProfile } from './components/UserProfile';
 import { ViewMode, Product, CartItem, Order, User, Customer } from './types';
 import { checkAuth, logout as authLogout } from './services/authService';
 import { productsApi, ordersApi, usersApi } from './services/api';
-import { INITIAL_CUSTOMERS } from './constants';
 
 const USER_CART_STORAGE_PREFIX = 'aura_user_cart_';
 
@@ -113,12 +112,13 @@ const App: React.FC = () => {
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   
   // Loading States
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
+  const [isCustomersLoading, setIsCustomersLoading] = useState(false);
   
   // Error State
   const [error, setError] = useState<string | null>(null);
@@ -214,7 +214,9 @@ const App: React.FC = () => {
 
       setIsOrdersLoading(true);
       try {
-        const result = await ordersApi.getAll();
+        const result = user.role === 'admin'
+          ? await ordersApi.getAllAdmin()
+          : await ordersApi.getAll();
         if (result.success && result.orders) {
           setOrders(result.orders);
         }
@@ -226,7 +228,35 @@ const App: React.FC = () => {
     };
 
     fetchOrders();
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      if (!user || user.role !== 'admin') {
+        setCustomers([]);
+        return;
+      }
+
+      setIsCustomersLoading(true);
+      try {
+        const result = await usersApi.getAdminCustomers();
+        if (result.success && result.customers) {
+          setCustomers(result.customers);
+        } else {
+          setCustomers([]);
+          setError(result.error || 'Failed to fetch customers');
+        }
+      } catch (err) {
+        console.error('Customers fetch failed:', err);
+        setCustomers([]);
+        setError('Failed to fetch customers');
+      } finally {
+        setIsCustomersLoading(false);
+      }
+    };
+
+    void fetchCustomers();
+  }, [user?.id, user?.role]);
 
   const handleLogin = (newUser: User) => {
     setUser(newUser);
@@ -367,6 +397,7 @@ const App: React.FC = () => {
             setProducts={setProducts}
             orders={orders} 
             setOrders={setOrders}
+            isCustomersLoading={isCustomersLoading}
           />
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-brand-500">
