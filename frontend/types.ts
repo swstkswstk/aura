@@ -24,7 +24,7 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
-  avatar: string;
+  avatar?: string;
   status: 'Lead' | 'Active' | 'VIP' | 'At Risk';
   sentiment: 'Positive' | 'Neutral' | 'Negative';
   preferredNotes: string[];
