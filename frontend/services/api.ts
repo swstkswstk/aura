@@ -1,4 +1,4 @@
-import { User, Product, Order, CartItem, AdminOrder, Offer } from '../types';
+import { User, Product, Order, CartItem, AdminOrder, Offer, Customer } from '../types';
 
 // API base URL - will be set from environment variable
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -464,6 +464,64 @@ export const offersApi = {
 
 // Users API
 export const usersApi = {
+  async getAdminCustomers(): Promise<{ success: boolean; customers?: Customer[]; error?: string }> {
+    try {
+      const response = await authFetch('/api/users/admin/customers');
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to fetch customers' };
+      }
+
+      const customers = data.customers.map((customer: Customer) => ({
+        ...customer,
+        lastInteraction: new Date(customer.lastInteraction),
+        orders: customer.orders?.map((order: Order) => ({
+          ...order,
+          date: new Date(order.date),
+        })),
+        messages: customer.messages?.map((message) => ({
+          ...message,
+          timestamp: new Date(message.timestamp),
+        })) || [],
+      }));
+
+      return { success: true, customers };
+    } catch (error) {
+      console.error('Get admin customers error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  },
+
+  async downloadAdminUsersCsv(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await authFetch('/api/users/admin/export');
+
+      if (!response.ok) {
+        const data = await response.json();
+        return { success: false, error: data.error || 'Failed to export users' };
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const disposition = response.headers.get('content-disposition');
+      const filenameMatch = disposition?.match(/filename=\"?([^"]+)\"?/i);
+
+      link.href = downloadUrl;
+      link.download = filenameMatch?.[1] || 'aura-users.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Download users CSV error:', error);
+      return { success: false, error: 'Network error' };
+    }
+  },
+
   async updateProfile(data: {
     name?: string;
     email?: string;
